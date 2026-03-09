@@ -13,8 +13,8 @@ serve(async (req) => {
 
   try {
     const { messages, lifestyleData, activeSuggestions, completedSuggestions } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const systemPrompt = `You are AI Life Copilot, a smart lifestyle and wellness coach.
 
@@ -48,21 +48,22 @@ ${activeSuggestions?.length ? `ACTIVE SUGGESTIONS (previously given, not yet com
 
 ${completedSuggestions?.length ? `RECENTLY COMPLETED (user confirmed these):\n${completedSuggestions.map((s: string) => `✅ ${s}`).join("\n")}\nAcknowledge their progress positively and suggest next steps.` : ""}`;
 
+    // Build Gemini-format contents from chat messages
+    const geminiContents = messages.map((m: { role: string; content: string }) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          stream: true,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: geminiContents,
         }),
       }
     );
@@ -74,23 +75,21 @@ ${completedSuggestions?.length ? `RECENTLY COMPLETED (user confirmed these):\n${
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI usage limit reached. Please add credits to your workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("Gemini API error:", response.status, t);
       return new Response(
         JSON.stringify({ error: "AI service error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    return new Response(
+      JSON.stringify({ choices: [{ message: { content } }] }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("ai-coach error:", e);
     return new Response(

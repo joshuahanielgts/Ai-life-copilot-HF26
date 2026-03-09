@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import CircularProgress from "@/components/CircularProgress";
 import { calculateScores, getImprovements, defaultData, type LifestyleData } from "@/lib/store";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity } from "lucide-react";
+import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill } from "lucide-react";
+import MedicineScanner from "@/components/MedicineScanner";
 
 // Build chart data from lifestyle history (falls back to current-day-only data)
 function getChartData(currentData: LifestyleData) {
@@ -25,6 +26,7 @@ const mobileGridItems = [
   { icon: Activity, label: "Lifestyle Logs", color: "text-accent", section: "logs" },
   { icon: Lightbulb, label: "AI Improvements", color: "text-yellow-400", section: "improvements" },
   { icon: BarChart3, label: "Analytics", color: "text-blue-400", section: "analytics" },
+  { icon: Pill, label: "Medicine Scan", color: "text-cyan-400", section: "medicine" },
   { icon: MessageCircle, label: "AI Chat Coach", color: "text-purple-400", section: "chat" },
   { icon: Settings, label: "Settings", color: "text-muted-foreground", section: "settings" },
 ];
@@ -147,6 +149,14 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </div>
           </div>
+        </section>
+
+        {/* Medicine Scanner */}
+        <section id="medicine" className="mb-10">
+          <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2">
+            <Pill size={20} className="text-cyan-400" /> Medicine Scanner
+          </h2>
+          <MedicineScanner />
         </section>
       </div>
     </div>
