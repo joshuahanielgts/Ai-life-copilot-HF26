@@ -63,7 +63,7 @@ const Profile = () => {
   const handleGoogleSignIn = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}/profile` },
     });
     if (error) toast.error("Google sign-in failed");
   };
