@@ -134,7 +134,7 @@ const ChatCoach = () => {
       );
 
       if (!response.ok) {
-        let errorMsg = "Sorry, I couldn't generate advice right now. Please try again.";
+        let errorMsg = "AI Coach is thinking... please try again.";
         try {
           const errData = await response.json();
           if (errData.error) errorMsg = errData.error;
@@ -153,7 +153,7 @@ const ChatCoach = () => {
       let assistantContent = data.choices?.[0]?.message?.content || "";
 
       if (!assistantContent) {
-        assistantContent = "Sorry, I couldn't generate advice right now. Please try again.";
+        assistantContent = "AI Coach is thinking... please try again.";
       }
 
       // Extract and store suggestions from the AI response
@@ -174,7 +174,7 @@ const ChatCoach = () => {
       setMessages((prev) =>
         prev.map((m, i) =>
           i === prev.length - 1
-            ? { role: "assistant", content: "Sorry, I couldn't generate advice right now. Please try again.", isLoading: false }
+            ? { role: "assistant", content: "AI Coach is thinking... please try again.", isLoading: false }
             : m
         )
       );

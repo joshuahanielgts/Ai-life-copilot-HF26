@@ -54,37 +54,47 @@ ${completedSuggestions?.length ? `RECENTLY COMPLETED (user confirmed these):\n${
       parts: [{ text: m.content }],
     }));
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiBody = JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: geminiContents,
+      generationConfig: {
+        maxOutputTokens: 512,
+        temperature: 0.7,
+      },
+    });
+
+    // Fetch with one retry on rate-limit or temporary errors
+    const callGemini = async (): Promise<Response> => {
+      const res = await fetch(geminiUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: geminiContents,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: geminiBody,
+      });
+      if (res.status === 429 || res.status === 503) {
+        await new Promise((r) => setTimeout(r, 2000));
+        return fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: geminiBody,
+        });
       }
-    );
+      return res;
+    };
+
+    const response = await callGemini();
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const t = await response.text();
       console.error("Gemini API error:", response.status, t);
       return new Response(
-        JSON.stringify({ error: "AI service error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ choices: [{ message: { content: "AI Coach is thinking... please try again." } }] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI Coach is thinking... please try again.";
 
     return new Response(
       JSON.stringify({ choices: [{ message: { content } }] }),
@@ -93,8 +103,8 @@ ${completedSuggestions?.length ? `RECENTLY COMPLETED (user confirmed these):\n${
   } catch (e) {
     console.error("ai-coach error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ choices: [{ message: { content: "AI Coach is thinking... please try again." } }] }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
