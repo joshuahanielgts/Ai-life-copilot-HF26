@@ -14,7 +14,12 @@ serve(async (req) => {
   try {
     const { messages, lifestyleData, activeSuggestions, completedSuggestions } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    if (!GEMINI_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "GEMINI_API_KEY is not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const systemPrompt = `You are AI Life Copilot, a smart lifestyle and wellness coach.
 
@@ -22,89 +27,92 @@ Your goal is to give helpful advice that improves the user's health, productivit
 
 Adjust your response style based on the type of question:
 
-CASE 1 — Lifestyle or habit improvement questions (e.g. "How can I improve my sleep?", "How do I reduce screen time?"):
+CASE 1 — Lifestyle or habit improvement questions:
 • Keep answers short
 • Use bullet points with emoji
 • Focus on practical actions
 • Limit to 3–5 suggestions
 
-CASE 2 — Knowledge or explanation questions (e.g. "How can I make biriyani healthier?", "What foods improve energy?"):
+CASE 2 — Knowledge or explanation questions:
 • Provide a short explanation (1–2 sentences)
 • Then list practical suggestions
 • Keep under 120 words
-• Avoid unnecessary long paragraphs
 
 GENERAL RULES:
 • Keep responses friendly and practical
-• Avoid long essays
-• Avoid repeating the user's question
+• Avoid long essays or repeating the question
 • Focus on actionable guidance
 • Prefer bullet points over paragraphs
-• The response should feel like advice from a smart lifestyle coach, not a textbook
 
-${lifestyleData ? `User lifestyle data: Sleep ${lifestyleData.sleepHours}h, Water ${lifestyleData.waterIntake}L, Steps ${lifestyleData.steps}, Meals ${lifestyleData.mealsType}, Screen ${lifestyleData.screenTime}h, Exercise ${lifestyleData.exerciseTime}min, Transport ${lifestyleData.transportType}. Use this to personalize tips.` : "No lifestyle data yet. Give general tips."}
+${lifestyleData ? `User lifestyle data: Sleep ${lifestyleData.sleepHours}h, Water ${lifestyleData.waterIntake}L, Steps ${lifestyleData.steps}, Meals ${lifestyleData.mealsType}, Screen ${lifestyleData.screenTime}h, Exercise ${lifestyleData.exerciseTime}min, Transport ${lifestyleData.transportType}. Personalize tips.` : "No lifestyle data yet. Give general tips."}
 
-${activeSuggestions?.length ? `ACTIVE SUGGESTIONS (previously given, not yet completed):\n${activeSuggestions.map((s: string) => `• ${s}`).join("\n")}\nWhen appropriate, follow up on these. Ask if they completed any. Don't repeat the same suggestions — build on them or suggest new ones.` : ""}
+${activeSuggestions?.length ? "ACTIVE SUGGESTIONS:\n" + activeSuggestions.map((s: string) => "• " + s).join("\n") + "\nFollow up on these. Don't repeat — build on them." : ""}
 
-${completedSuggestions?.length ? `RECENTLY COMPLETED (user confirmed these):\n${completedSuggestions.map((s: string) => `✅ ${s}`).join("\n")}\nAcknowledge their progress positively and suggest next steps.` : ""}`;
+${completedSuggestions?.length ? "RECENTLY COMPLETED:\n" + completedSuggestions.map((s: string) => "✅ " + s).join("\n") + "\nAcknowledge progress and suggest next steps." : ""}`;
 
-    // Build Gemini-format contents from chat messages
-    const geminiContents = messages.map((m: { role: string; content: string }) => ({
+    // Only keep last 10 messages to avoid token limits
+    const recentMessages = messages.slice(-10);
+    const geminiContents = recentMessages.map((m: { role: string; content: string }) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const geminiBody = JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents: geminiContents,
-      generationConfig: {
-        maxOutputTokens: 512,
-        temperature: 0.7,
-      },
-    });
+    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+    let lastError = "";
 
-    // Fetch with one retry on rate-limit or temporary errors
-    const callGemini = async (): Promise<Response> => {
-      const res = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: geminiBody,
+    for (const model of models) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const geminiBody = JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: geminiContents,
+        generationConfig: { maxOutputTokens: 512, temperature: 0.7 },
       });
-      if (res.status === 429 || res.status === 503) {
-        await new Promise((r) => setTimeout(r, 2000));
-        return fetch(geminiUrl, {
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 3000));
+
+        const res = await fetch(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: geminiBody,
         });
+
+        if (res.status === 429 || res.status === 503) {
+          lastError = `${model} returned ${res.status}`;
+          console.log(`${model} rate limited (attempt ${attempt + 1})`);
+          continue;
+        }
+
+        if (!res.ok) {
+          const t = await res.text();
+          console.error(`${model} error:`, res.status, t);
+          lastError = `${model} error ${res.status}`;
+          break;
+        }
+
+        const data = await res.json();
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!content) {
+          lastError = `${model} returned empty response`;
+          break;
+        }
+
+        return new Response(
+          JSON.stringify({ choices: [{ message: { content } }] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
-      return res;
-    };
-
-    const response = await callGemini();
-
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("Gemini API error:", response.status, t);
-      return new Response(
-        JSON.stringify({ choices: [{ message: { content: "AI Coach is thinking... please try again." } }] }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
-    const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "AI Coach is thinking... please try again.";
-
     return new Response(
-      JSON.stringify({ choices: [{ message: { content } }] }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ error: `AI models temporarily busy. ${lastError}` }),
+      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
     console.error("ai-coach error:", e);
     return new Response(
-      JSON.stringify({ choices: [{ message: { content: "AI Coach is thinking... please try again." } }] }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: `Edge function error: ${e.message || String(e)}` }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
