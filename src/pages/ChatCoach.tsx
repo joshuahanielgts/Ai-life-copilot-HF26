@@ -121,27 +121,30 @@ const ChatCoach = () => {
     }));
 
     try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+      console.log("[AI Coach] URL:", supabaseUrl, "Key present:", !!supabaseKey);
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`,
+        `${supabaseUrl}/functions/v1/ai-coach`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY}`,
+            Authorization: `Bearer ${supabaseKey}`,
           },
           body: JSON.stringify({ messages: chatHistory, lifestyleData, activeSuggestions, completedSuggestions }),
         }
       );
 
+      console.log("[AI Coach] Response status:", response.status);
+
       if (!response.ok) {
-        let errorMsg = "AI Coach is thinking... please try again.";
-        try {
-          const errData = await response.json();
-          if (errData.error) errorMsg = errData.error;
-        } catch {}
+        const errText = await response.text();
+        console.error("[AI Coach] Non-OK response:", response.status, errText);
         setMessages((prev) =>
           prev.map((m, i) =>
-            i === prev.length - 1 ? { role: "assistant", content: errorMsg, isLoading: false } : m
+            i === prev.length - 1 ? { role: "assistant", content: `Error ${response.status}: ${errText.slice(0, 200)}`, isLoading: false } : m
           )
         );
         setIsLoading(false);
@@ -150,10 +153,11 @@ const ChatCoach = () => {
 
       // Parse the JSON response
       const data = await response.json();
+      console.log("[AI Coach] Response data:", JSON.stringify(data).slice(0, 300));
       let assistantContent = data.choices?.[0]?.message?.content || "";
 
       if (!assistantContent) {
-        assistantContent = "AI Coach is thinking... please try again.";
+        assistantContent = "No content in response. Check console for details.";
       }
 
       // Extract and store suggestions from the AI response
@@ -174,7 +178,7 @@ const ChatCoach = () => {
       setMessages((prev) =>
         prev.map((m, i) =>
           i === prev.length - 1
-            ? { role: "assistant", content: "AI Coach is thinking... please try again.", isLoading: false }
+            ? { role: "assistant", content: `Network error: ${e instanceof Error ? e.message : String(e)}`, isLoading: false }
             : m
         )
       );
