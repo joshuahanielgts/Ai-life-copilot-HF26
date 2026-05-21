@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import LifestyleInput from "./pages/LifestyleInput";
 import Dashboard from "./pages/Dashboard";
+import WeeklyInsights from "./pages/WeeklyInsights";
 import ChatCoach from "./pages/ChatCoach";
 import Profile from "./pages/Profile";
 import Forecast from "./pages/Forecast";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/input" element={<LifestyleInput />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/insights" element={<WeeklyInsights />} />
             <Route path="/chat" element={<ChatCoach />} />
             <Route path="/forecast" element={<Forecast />} />
             <Route path="/profile" element={<Profile />} />
