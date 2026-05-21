@@ -8,6 +8,7 @@ import LifestyleInput from "./pages/LifestyleInput";
 import Dashboard from "./pages/Dashboard";
 import ChatCoach from "./pages/ChatCoach";
 import Profile from "./pages/Profile";
+import Forecast from "./pages/Forecast";
 import BottomNav from "./components/BottomNav";
 import NotFound from "./pages/NotFound";
 import VoiceAssistant from "./components/VoiceAssistant";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/input" element={<LifestyleInput />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/chat" element={<ChatCoach />} />
+            <Route path="/forecast" element={<Forecast />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

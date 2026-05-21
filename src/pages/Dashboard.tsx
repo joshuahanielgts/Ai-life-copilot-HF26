@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CircularProgress from "@/components/CircularProgress";
 import { calculateScores, getImprovements, defaultData, type LifestyleData } from "@/lib/store";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill } from "lucide-react";
+import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill, Telescope } from "lucide-react";
 import MedicineScanner from "@/components/MedicineScanner";
 
 // Build chart data from lifestyle history (falls back to current-day-only data)
@@ -28,6 +28,7 @@ const mobileGridItems = [
   { icon: BarChart3, label: "Analytics", color: "text-blue-400", section: "analytics" },
   { icon: Pill, label: "Medicine Scan", color: "text-cyan-400", section: "medicine" },
   { icon: MessageCircle, label: "AI Chat Coach", color: "text-purple-400", section: "chat" },
+  { icon: Telescope, label: "AI Forecast", color: "text-violet-400", section: "forecast" },
   { icon: Settings, label: "Settings", color: "text-muted-foreground", section: "settings" },
 ];
 
@@ -47,6 +48,7 @@ const Dashboard = () => {
   const handleGridClick = (section: string) => {
     if (section === "chat") return navigate("/chat");
     if (section === "logs") return navigate("/input");
+    if (section === "forecast") return navigate("/forecast");
     const el = document.getElementById(section);
     el?.scrollIntoView({ behavior: "smooth" });
   };
@@ -66,6 +68,22 @@ const Dashboard = () => {
             </button>
           ))}
         </div>
+
+        {/* AI Life Forecast Banner */}
+        <button
+          onClick={() => navigate("/forecast")}
+          className="w-full mb-8 glass-card p-4 flex items-center gap-4 border border-primary/30 hover:border-primary/60 transition-all duration-200 hover:scale-[1.01] group"
+          style={{ background: "linear-gradient(135deg, hsl(265,80%,60%,0.08), hsl(190,90%,50%,0.05))", boxShadow: "0 0 24px hsl(265,80%,60%,0.1)" }}
+        >
+          <div className="p-3 rounded-xl bg-primary/15 group-hover:bg-primary/25 transition-colors">
+            <Telescope size={24} className="text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-display font-semibold text-sm">✨ AI Life Forecast</p>
+            <p className="text-xs text-muted-foreground">Burnout Radar · Life Replay · Regret Sim · Mood Weather</p>
+          </div>
+          <ArrowRight size={18} className="text-primary/60 group-hover:text-primary transition-colors group-hover:translate-x-1 duration-200" />
+        </button>
 
         {/* Scores */}
         <section id="scores" className="mb-10">

@@ -1,4 +1,4 @@
-import { Home, Lightbulb, PlusCircle, Bot, User, Plus } from "lucide-react";
+import { Home, Lightbulb, PlusCircle, Bot, User, Plus, Telescope } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,6 +7,7 @@ const items = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Lightbulb, label: "Insights", path: "/dashboard" },
   { icon: PlusCircle, label: "Add Log", path: "/input" },
+  { icon: Telescope, label: "Forecast", path: "/forecast" },
   { icon: Bot, label: "AI Coach", path: "/chat" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
