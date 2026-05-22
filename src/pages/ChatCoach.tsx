@@ -6,8 +6,8 @@ import type { LifestyleData } from "@/lib/store";
 import { useChatThreads, type ChatMessage } from "@/hooks/useChatThreads";
 import { useSuggestionTracker, extractSuggestions } from "@/hooks/useSuggestionTracker";
 import ChatThreadSidebar from "@/components/ChatThreadSidebar";
-
-
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 
 const quickQuestions = [
@@ -46,6 +46,11 @@ const ChatCoach = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [validationStates, setValidationStates] = useState<
+  Record<number, "approved" | "rejected">
+  >({});
+
+  const [processingMessage, setProcessingMessage] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const messages = activeThread.messages;
@@ -86,7 +91,9 @@ const ChatCoach = () => {
         }
         localStorage.setItem("lifestyleData", JSON.stringify(data));
       }
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
     // Send confirmation message to AI
     sendMessage(`Yes, I completed: "${text}"`);
   };
@@ -95,6 +102,32 @@ const ChatCoach = () => {
     sendMessage(`Not yet — I haven't completed: "${text}"`);
   };
 
+  const handleValidation = (
+  index: number,
+  status: "approved" | "rejected"
+  ) => {
+  setProcessingMessage(index);
+
+  setTimeout(() => {
+    setValidationStates((prev) => ({
+      ...prev,
+      [index]: status,
+    }));
+
+    setProcessingMessage(null);
+
+    toast({
+      title:
+        status === "approved"
+          ? "Response Approved"
+          : "Response Rejected",
+      description:
+        status === "approved"
+          ? "AI response validated successfully."
+          : "Feedback recorded for AI response.",
+      });
+    }, 700);
+  };
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
@@ -228,7 +261,53 @@ const ChatCoach = () => {
                   <ThinkingDots />
                 </p>
               ) : (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                <div className="space-y-3">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            {msg.content}
+          </p>
+
+          {msg.role === "assistant" && (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={processingMessage === i}
+                onClick={() => handleValidation(i, "approved")}
+              >
+                {processingMessage === i &&
+                !validationStates[i]
+                  ? "Processing..."
+                  : "Approve"}
+              </Button>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={processingMessage === i}
+                onClick={() => handleValidation(i, "rejected")}
+              >
+                {processingMessage === i &&
+                validationStates[i] !== "approved"
+                  ? "Processing..."
+                  : "Reject"}
+              </Button>
+
+              {validationStates[i] && (
+                <Badge
+                  variant={
+                    validationStates[i] === "approved"
+                      ? "default"
+                      : "destructive"
+                  }
+                >
+                  {validationStates[i] === "approved"
+                    ? "Approved"
+                    : "Rejected"}
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
               )}
             </div>
           </div>
