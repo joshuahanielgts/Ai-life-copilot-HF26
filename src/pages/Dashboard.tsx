@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CircularProgress from "@/components/CircularProgress";
 import { calculateScores, getImprovements, defaultData, type LifestyleData } from "@/lib/store";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill, Telescope } from "lucide-react";
+import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill, Telescope, ChevronDown, ChevronUp, CheckCircle, Target, Bell } from "lucide-react";
 import MedicineScanner from "@/components/MedicineScanner";
 
 // Build chart data from lifestyle history (falls back to current-day-only data)
@@ -35,6 +35,7 @@ const mobileGridItems = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<LifestyleData>(defaultData);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("lifestyleData");
@@ -104,19 +105,45 @@ const Dashboard = () => {
           </h2>
           <div className="grid gap-3">
             {improvements.map((s, i) => (
-              <div key={i} className="glass-card p-4 flex items-center gap-4">
-                <span className="text-2xl">{s.icon}</span>
-                <div className="flex-1">
-                  <p className="font-medium">{s.text}</p>
+              <div 
+                key={i} 
+                className={`glass-card group p-4 transition-all duration-300 cursor-pointer hover:bg-white/5 ${expandedIndex === i ? 'ring-1 ring-primary/50' : ''}`}
+                onClick={() => setExpandedIndex(expandedIndex === i ? null : i)}
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl">{s.icon}</span>
+                  <div className="flex-1">
+                    <p className="font-medium">{s.text}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                    s.impact === "High" ? "bg-red-500/20 text-red-400" :
+                    s.impact === "Medium" ? "bg-yellow-500/20 text-yellow-400" :
+                    "bg-green-500/20 text-green-400"
+                  }`}>
+                    {s.impact}
+                  </span>
+                  {expandedIndex === i ? (
+                    <ChevronUp size={16} className="text-primary" />
+                  ) : (
+                    <ChevronDown size={16} className="text-muted-foreground transition-transform group-hover:translate-y-0.5" />
+                  )}
                 </div>
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                  s.impact === "High" ? "bg-red-500/20 text-red-400" :
-                  s.impact === "Medium" ? "bg-yellow-500/20 text-yellow-400" :
-                  "bg-green-500/20 text-green-400"
-                }`}>
-                  {s.impact}
-                </span>
-                <ArrowRight size={16} className="text-muted-foreground" />
+
+                {/* Expanded Details */}
+                {expandedIndex === i && s.reason && s.benefit && (
+                  <div className="mt-4 pt-4 border-t border-white/10 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-3 mb-4 text-sm">
+                      <div className="flex gap-2 text-muted-foreground">
+                        <Lightbulb size={16} className="text-yellow-400/70 shrink-0 mt-0.5" />
+                        <p><strong className="text-foreground/80 font-medium">Why:</strong> {s.reason}</p>
+                      </div>
+                      <div className="flex gap-2 text-muted-foreground">
+                        <TrendingUp size={16} className="text-green-400/70 shrink-0 mt-0.5" />
+                        <p><strong className="text-foreground/80 font-medium">Expected Benefit:</strong> {s.benefit}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
