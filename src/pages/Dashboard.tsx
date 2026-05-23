@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CircularProgress from "@/components/CircularProgress";
-import { calculateScores, getImprovements, defaultData, type LifestyleData } from "@/lib/store";
+import { calculateScores, getImprovements, defaultData, SCORE_BREAKDOWNS, type LifestyleData } from "@/lib/store";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill, Telescope } from "lucide-react";
+import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill, Telescope, ShieldCheck, Shield, ShieldAlert, AlertTriangle } from "lucide-react";
 import MedicineScanner from "@/components/MedicineScanner";
 
 // Build chart data from lifestyle history (falls back to current-day-only data)
@@ -44,6 +44,9 @@ const Dashboard = () => {
   const scores = calculateScores(data);
   const improvements = getImprovements(data);
   const { healthTrend, stepsVsScreen, sleepTrend } = getChartData(data);
+
+  const rawHistory = JSON.parse(localStorage.getItem("lifestyleHistory") || "[]");
+  const confidenceLevel = rawHistory.length > 7 ? "High" : rawHistory.length >= 3 ? "Moderate" : "Limited";
 
   const handleGridClick = (section: string) => {
     if (section === "chat") return navigate("/chat");
@@ -87,13 +90,36 @@ const Dashboard = () => {
 
         {/* Scores */}
         <section id="scores" className="mb-10">
-          <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-primary" /> AI Life Scores
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+            <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+              <TrendingUp size={20} className="text-primary" /> AI Life Scores
+            </h2>
+            <div className="relative group cursor-help">
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium w-fit transition-colors ${
+                confidenceLevel === "High" ? "bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20" :
+                confidenceLevel === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20" :
+                "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+              }`}>
+                {confidenceLevel === "High" ? <ShieldCheck size={14} /> :
+                 confidenceLevel === "Moderate" ? <Shield size={14} /> :
+                 <ShieldAlert size={14} />}
+                {confidenceLevel} Confidence
+              </div>
+              
+              <div className="absolute top-full right-0 mt-2 w-64 p-3 rounded-lg bg-background/95 backdrop-blur-md shadow-xl border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-left scale-95 group-hover:scale-100 origin-top pointer-events-none">
+                <p className="text-xs font-semibold mb-1.5 text-foreground/80 border-b border-white/10 pb-1">Analysis Reliability</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {confidenceLevel === "High" ? "The AI has over 7 days of your data, making this analysis highly accurate and deeply personalized." :
+                   confidenceLevel === "Moderate" ? "The AI has 3-7 days of your data. Trends are forming, resulting in moderately reliable analysis." :
+                   "The AI has less than 3 days of your data. This is a limited snapshot, so recommendations are currently basic."}
+                </p>
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <CircularProgress value={scores.health} color="green" label="Health Score" description="Based on sleep, water, steps & meals" />
-            <CircularProgress value={scores.productivity} color="blue" label="Productivity Score" description="Based on screen time, sleep & focus" />
-            <CircularProgress value={scores.sustainability} color="cyan" label="Sustainability Score" description="Based on transport & consumption" />
+            <CircularProgress value={scores.health} color="green" label="Health Score" description="Based on sleep, water, steps & meals" breakdown={SCORE_BREAKDOWNS.health} />
+            <CircularProgress value={scores.productivity} color="blue" label="Productivity Score" description="Based on screen time, sleep & focus" breakdown={SCORE_BREAKDOWNS.productivity} />
+            <CircularProgress value={scores.sustainability} color="cyan" label="Sustainability Score" description="Based on transport & consumption" breakdown={SCORE_BREAKDOWNS.sustainability} />
           </div>
         </section>
 
@@ -167,6 +193,14 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </div>
           </div>
+        </section>
+
+        {/* AI Disclaimer Section */}
+        <section className="mb-10 p-4 rounded-xl bg-primary/5 border border-primary/10 flex items-start gap-3 text-muted-foreground text-sm">
+          <AlertTriangle size={18} className="text-primary/70 shrink-0 mt-0.5" />
+          <p>
+            <strong className="text-foreground/80 font-medium">AI Analysis Disclaimer:</strong> The scores, analytics, and recommendations provided on this dashboard are generated by AI based on your self-reported lifestyle data. They are designed for general wellness tracking and are <strong>not professional medical advice</strong>. Always consult a healthcare provider for medical decisions.
+          </p>
         </section>
 
         {/* Medicine Scanner */}

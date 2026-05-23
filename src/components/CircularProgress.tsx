@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Info } from "lucide-react";
 
 interface CircularProgressProps {
   value: number;
@@ -8,9 +9,10 @@ interface CircularProgressProps {
   color: string;
   label: string;
   description: string;
+  breakdown?: { factor: string; weight: string }[];
 }
 
-const CircularProgress = ({ value, max = 100, size = 140, strokeWidth = 10, color, label, description }: CircularProgressProps) => {
+const CircularProgress = ({ value, max = 100, size = 140, strokeWidth = 10, color, label, description, breakdown }: CircularProgressProps) => {
   const [animatedValue, setAnimatedValue] = useState(0);
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -63,7 +65,25 @@ const CircularProgress = ({ value, max = 100, size = 140, strokeWidth = 10, colo
           <span className="text-xs text-muted-foreground">/ {max}</span>
         </div>
       </div>
-      <h3 className="font-display font-semibold text-lg">{label}</h3>
+      <div className="flex items-center justify-center gap-2 mt-4 mb-1">
+        <h3 className="font-display font-semibold text-lg">{label}</h3>
+        {breakdown && (
+          <div className="relative group">
+            <Info size={16} className="text-muted-foreground cursor-help hover:text-primary transition-colors outline-none focus:outline-none" />
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-3 rounded-lg bg-background/95 backdrop-blur-md shadow-xl border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-left scale-95 group-hover:scale-100 origin-bottom pointer-events-none">
+              <p className="text-xs font-semibold mb-2 text-foreground/80 border-b border-white/10 pb-1">Calculation Breakdown</p>
+              <div className="space-y-1.5">
+                {breakdown.map((item, i) => (
+                  <div key={i} className="flex justify-between text-[11px]">
+                    <span className="text-muted-foreground">{item.factor}</span>
+                    <span className="font-medium text-foreground">{item.weight}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       <p className="text-xs text-muted-foreground text-center">{description}</p>
     </div>
   );
