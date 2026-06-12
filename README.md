@@ -2,6 +2,15 @@
 
 # 🧬 AI Life Copilot
 
+### AI Life Co-Pilot is a team project where all my teammates have contributed to this project's core systems and designing the architecture
+
+| Contributor | Role |
+|-----------------|---------------------|
+| [@joshuahanielgts](https://github.com/joshuahanielgts) | Team Lead |
+| [@deeps1970](https://github.com/deeps1970) | Back-End Developer |
+| [@vinaya2007](https://github.com/vinaya2007) | AI/ML Engineer |
+| [@thanishls](#) | UI/UX Developer |
+
 ### Your intelligent lifestyle analytics & AI wellness coach
 
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
