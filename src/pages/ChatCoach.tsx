@@ -7,15 +7,121 @@ import { useChatThreads, type ChatMessage } from "@/hooks/useChatThreads";
 import { useSuggestionTracker, extractSuggestions } from "@/hooks/useSuggestionTracker";
 import ChatThreadSidebar from "@/components/ChatThreadSidebar";
 
-
-
-
 const quickQuestions = [
   "How can I improve my sleep?",
   "How to reduce screen addiction?",
   "Tips for staying hydrated?",
   "Best exercise routine?",
 ];
+
+const CHAT_RETRY_MESSAGE = "AI Coach is thinking... please try again.";
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"] as const;
+
+function getFallbackResponse(userMessage: string): string {
+  const lower = userMessage.toLowerCase();
+
+  if (lower.includes("sleep") || lower.includes("bed") || lower.includes("insomnia") || lower.includes("rest")) {
+    return "Better sleep usually starts with consistency.\n\n• Keep the same sleep and wake time daily\n• Reduce screens 30-60 minutes before bed\n• Avoid caffeine late in the day\n• Keep your room cool, dark, and quiet";
+  }
+
+  if (lower.includes("water") || lower.includes("hydrat") || lower.includes("drink")) {
+    return "Hydration improves energy and focus.\n\n• Keep a water bottle nearby\n• Drink a glass after waking up\n• Set reminders if you often forget\n• Increase fluids on hot or active days";
+  }
+
+  if (lower.includes("screen") || lower.includes("phone") || lower.includes("social media")) {
+    return "Reducing screen overload works best with limits and replacement habits.\n\n• Set app time limits\n• Keep phones away during meals and bedtime\n• Turn off non-essential notifications\n• Replace scrolling with a short walk or reading";
+  }
+
+  if (lower.includes("exercise") || lower.includes("workout") || lower.includes("walk") || lower.includes("steps")) {
+    return "A sustainable routine is better than an intense one you stop doing.\n\n• Aim for regular walking most days\n• Add 2-3 strength sessions weekly\n• Start with short sessions and build up\n• Track consistency more than perfection";
+  }
+
+  return "I can help with sleep, hydration, exercise, focus, and healthier routines. Ask me a specific lifestyle question and I’ll give practical next steps.";
+}
+
+function buildSystemPrompt(
+  lifestyleData: LifestyleData | null,
+  activeSuggestions: string[],
+  completedSuggestions: string[],
+): string {
+  return `You are AI Life Copilot, a smart lifestyle and wellness coach.
+
+Your goal is to give helpful advice that improves the user's health, productivity, and daily habits.
+
+CASE 1 - Lifestyle or habit improvement questions:
+- Keep answers short
+- Use bullet points
+- Focus on practical actions
+- Limit to 3-5 suggestions
+
+CASE 2 - Knowledge or explanation questions:
+- Provide a short explanation (1-2 sentences)
+- Then list practical suggestions
+- Keep under 120 words
+
+GENERAL RULES:
+- Keep responses friendly and practical
+- Avoid long essays or repeating the question
+- Focus on actionable guidance
+- Prefer bullet points over paragraphs
+
+${lifestyleData ? `User lifestyle data: Sleep ${lifestyleData.sleepHours}h, Water ${lifestyleData.waterIntake}L, Steps ${lifestyleData.steps}, Meals ${lifestyleData.mealsType}, Screen ${lifestyleData.screenTime}h, Exercise ${lifestyleData.exerciseTime}min, Transport ${lifestyleData.transportType}. Personalize tips.` : "No lifestyle data yet. Give general tips."}
+
+${activeSuggestions.length ? `ACTIVE SUGGESTIONS:\n${activeSuggestions.map((suggestion) => `- ${suggestion}`).join("\n")}\nFollow up on these. Don't repeat them directly - build on them.` : ""}
+
+${completedSuggestions.length ? `RECENTLY COMPLETED:\n${completedSuggestions.map((suggestion) => `- ${suggestion}`).join("\n")}\nAcknowledge progress and suggest next steps.` : ""}`;
+}
+
+async function fetchFromGeminiDirect(
+  chatHistory: Array<{ role: string; content: string }>,
+  lifestyleData: LifestyleData | null,
+  activeSuggestions: string[],
+  completedSuggestions: string[],
+): Promise<string> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing Gemini API key");
+  }
+
+  const contents = chatHistory.slice(-10).map((message) => ({
+    role: message.role === "assistant" ? "model" : "user",
+    parts: [{ text: message.content }],
+  }));
+
+  const requestBody = JSON.stringify({
+    systemInstruction: {
+      parts: [{ text: buildSystemPrompt(lifestyleData, activeSuggestions, completedSuggestions) }],
+    },
+    contents,
+    generationConfig: {
+      maxOutputTokens: 512,
+      temperature: 0.7,
+    },
+  });
+
+  for (const model of GEMINI_MODELS) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+      },
+    );
+
+    if (!response.ok) {
+      continue;
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (content) {
+      return content;
+    }
+  }
+
+  throw new Error("Direct Gemini request failed");
+}
 
 const ThinkingDots = () => {
   const [dots, setDots] = useState("");
@@ -86,7 +192,9 @@ const ChatCoach = () => {
         }
         localStorage.setItem("lifestyleData", JSON.stringify(data));
       }
-    } catch {}
+    } catch {
+      // Ignore local sync errors and continue the chat flow.
+    }
     // Send confirmation message to AI
     sendMessage(`Yes, I completed: "${text}"`);
   };
@@ -121,35 +229,35 @@ const ChatCoach = () => {
     }));
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY}`,
-          },
-          body: JSON.stringify({ messages: chatHistory, lifestyleData, activeSuggestions, completedSuggestions }),
-        }
-      );
+      let assistantContent = "";
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("[AI Coach] Error:", response.status, data);
-        setMessages((prev) =>
-          prev.map((m, i) =>
-            i === prev.length - 1 ? { role: "assistant", content: "AI Coach is thinking... please try again.", isLoading: false } : m
-          )
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY}`,
+            },
+            body: JSON.stringify({ messages: chatHistory, lifestyleData, activeSuggestions, completedSuggestions }),
+          }
         );
-        setIsLoading(false);
-        return;
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(`AI coach request failed with ${response.status}`);
+        }
+
+        assistantContent = data.choices?.[0]?.message?.content || "";
+      } catch (edgeFunctionError) {
+        console.error("[AI Coach] Falling back to direct Gemini:", edgeFunctionError);
+        assistantContent = await fetchFromGeminiDirect(chatHistory, lifestyleData, activeSuggestions, completedSuggestions);
       }
 
-      let assistantContent = data.choices?.[0]?.message?.content || "";
-
       if (!assistantContent) {
-        assistantContent = "AI Coach is thinking... please try again.";
+        assistantContent = getFallbackResponse(text);
       }
 
       // Extract and store suggestions from the AI response
@@ -170,7 +278,7 @@ const ChatCoach = () => {
       setMessages((prev) =>
         prev.map((m, i) =>
           i === prev.length - 1
-            ? { role: "assistant", content: "AI Coach is thinking... please try again.", isLoading: false }
+            ? { role: "assistant", content: getFallbackResponse(text) || CHAT_RETRY_MESSAGE, isLoading: false }
             : m
         )
       );
