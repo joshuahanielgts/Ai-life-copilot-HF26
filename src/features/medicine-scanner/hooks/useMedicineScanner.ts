@@ -5,6 +5,9 @@ import { analyzeMedicineText } from "@/features/medicine-scanner/services/medici
 import { isLikelyMedicineText } from "@/features/medicine-scanner/utils/text";
 import type { MedicineAnalysisResult, OcrProgressState } from "@/features/medicine-scanner/types";
 
+const SCAN_FAILURE_MESSAGE =
+  "The uploaded image could not be recognized. OCR was unable to extract sufficient readable text from the medicine package. Please upload a clearer image of the back side of the medicine strip with good lighting, proper focus, and ensure the text is fully visible.";
+
 const defaultProgressState: OcrProgressState = {
   phase: "idle",
   progress: 0,
@@ -78,7 +81,7 @@ export function useMedicineScanner() {
       setProgress({
         phase: "analyzing",
         progress: 0.94,
-        message: "Analyzing OCR text with Gemini",
+        message: "Analyzing medicine...",
       });
 
       const analysis = await analyzeMedicineText({
@@ -92,12 +95,12 @@ export function useMedicineScanner() {
         progress: 1,
         message: "Scan complete",
       });
-    } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : "Failed to scan medicine");
+    } catch {
+      setError(SCAN_FAILURE_MESSAGE);
       setProgress({
         phase: "error",
         progress: 0,
-        message: "Scan failed",
+        message: "Scan Failed",
       });
     } finally {
       setIsBusy(false);

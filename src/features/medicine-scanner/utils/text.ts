@@ -5,6 +5,10 @@ export function normalizeOcrText(text: string): string {
   return text
     .replace(/[|]/g, "I")
     .replace(/[•·]/g, ".")
+    .replace(/[“”]/g, "\"")
+    .replace(/[‘’]/g, "'")
+    .replace(/\bO(?=\d{2,}\b)/g, "0")
+    .replace(/\bS(?=\d{2,}\b)/g, "5")
     .replace(/[^\S\r\n]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

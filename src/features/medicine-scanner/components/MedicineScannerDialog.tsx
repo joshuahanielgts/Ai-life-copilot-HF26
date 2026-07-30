@@ -89,7 +89,7 @@ export default function MedicineScannerDialog() {
           </div>
           <div className="flex-1">
             <p className="font-semibold text-foreground">Medicine Scanner</p>
-            <p className="text-xs text-muted-foreground">Scan medicine packaging and extract OCR text before AI analysis</p>
+            <p className="text-xs text-muted-foreground">Scan medicine packaging and extract text for structured analysis</p>
           </div>
           <Camera size={18} className="text-muted-foreground group-hover:text-cyan-400 transition-colors" />
         </button>
@@ -114,7 +114,7 @@ export default function MedicineScannerDialog() {
         {!result && (
           <div className="space-y-4 py-3">
             <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-              <p className="text-sm text-foreground">Upload the back side of a medicine strip or box. The app will preprocess the image, run OCR, and send only the extracted text to Gemini.</p>
+              <p className="text-sm text-foreground">Upload the back side of a medicine strip or box. The app will preprocess the image, run OCR, and analyze the extracted text.</p>
             </div>
 
             {sourcePreview ? (
@@ -172,7 +172,7 @@ export default function MedicineScannerDialog() {
 
                 {error && (
                   <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-foreground">
-                    <p className="font-medium text-destructive">Scan failed</p>
+                    <p className="font-medium text-destructive">Scan Failed</p>
                     <p className="mt-1">{error}</p>
                   </div>
                 )}
@@ -290,7 +290,7 @@ export default function MedicineScannerDialog() {
             <div className="glass-card p-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Extracted OCR Text</p>
-                <Badge variant="outline">{result.confidence} AI confidence</Badge>
+                <Badge variant="outline">{result.confidence} scan confidence</Badge>
               </div>
               <pre className="mt-2 whitespace-pre-wrap text-sm text-foreground/85">{ocrText || result.extractedText}</pre>
             </div>
