@@ -19,6 +19,28 @@ export const defaultData: LifestyleData = {
   transportType: "public",
 };
 
+export const SCORE_BREAKDOWNS = {
+  health: [
+    { factor: "Sleep Duration", weight: "25%" },
+    { factor: "Water Intake", weight: "25%" },
+    { factor: "Daily Steps", weight: "25%" },
+    { factor: "Diet Quality", weight: "25%" },
+    { factor: "Exercise", weight: "10%" }
+  ],
+  productivity: [
+    { factor: "Screen Time", weight: "35%" },
+    { factor: "Sleep Quality", weight: "35%" },
+    { factor: "Exercise", weight: "15%" },
+    { factor: "Diet Quality", weight: "15%" }
+  ],
+  sustainability: [
+    { factor: "Transport Mode", weight: "40%" },
+    { factor: "Diet Quality", weight: "30%" },
+    { factor: "Water Conservation", weight: "15%" },
+    { factor: "Screen Time (Energy)", weight: "15%" }
+  ]
+};
+
 export function calculateScores(data: LifestyleData) {
   // Health Score
   let health = 0;
