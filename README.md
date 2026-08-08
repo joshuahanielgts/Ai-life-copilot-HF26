@@ -36,6 +36,23 @@ Now featuring the brand-new **🔮 AI Life Forecast** system — predict burnout
 
 ---
 
+## 📑 Table of Contents
+
+- [📸 Screenshots](#-screenshots)
+- [✨ NEW — AI Life Forecast](#-new--ai-life-forecast)
+- [✨ All Features](#-all-features)
+- [🏗️ Architecture](#️-architecture)
+- [🚀 Quick Start](#-quick-start)
+- [🔮 AI Life Forecast — Deep Dive](#-ai-life-forecast--deep-dive)
+- [🎙️ Voice AI Coach (VAPI)](#️-voice-ai-coach-vapi)
+- [📊 Scoring Algorithm](#-scoring-algorithm)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [📁 Project Structure](#-project-structure)
+- [📜 Scripts](#-scripts)
+- [🤝 Contributing](#-contributing)
+
+---
+
 ## 📸 Screenshots
 
 ### 🏠 Landing Page
