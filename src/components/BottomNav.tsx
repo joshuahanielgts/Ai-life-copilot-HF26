@@ -1,11 +1,12 @@
-import { Home, Lightbulb, PlusCircle, Bot, User, Plus, Telescope } from "lucide-react";
+import { Home, Lightbulb, PlusCircle, Bot, User, Plus, Telescope, Flame } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const items = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: Lightbulb, label: "Insights", path: "/dashboard" },
+  { icon: Lightbulb, label: "Dashboard", path: "/dashboard" },
+  { icon: Flame, label: "Weekly", path: "/insights" },
   { icon: PlusCircle, label: "Add Log", path: "/input" },
   { icon: Telescope, label: "Forecast", path: "/forecast" },
   { icon: Bot, label: "AI Coach", path: "/chat" },

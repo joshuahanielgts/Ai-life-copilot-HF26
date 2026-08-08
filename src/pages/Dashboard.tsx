@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CircularProgress from "@/components/CircularProgress";
 import { calculateScores, getImprovements, defaultData, type LifestyleData } from "@/lib/store";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill, Telescope } from "lucide-react";
+import { TrendingUp, ArrowRight, Heart, Brain, Leaf, BarChart3, Lightbulb, MessageCircle, Settings, Activity, Pill, Telescope, Flame } from "lucide-react";
 import MedicineScanner from "@/components/MedicineScanner";
 
 // Build chart data from lifestyle history (falls back to current-day-only data)
@@ -25,6 +25,7 @@ const mobileGridItems = [
   { icon: Leaf, label: "Sustainability", color: "text-green-400", section: "scores" },
   { icon: Activity, label: "Lifestyle Logs", color: "text-accent", section: "logs" },
   { icon: Lightbulb, label: "AI Improvements", color: "text-yellow-400", section: "improvements" },
+  { icon: Flame, label: "Weekly Streaks", color: "text-orange-400", section: "insights" },
   { icon: BarChart3, label: "Analytics", color: "text-blue-400", section: "analytics" },
   { icon: Pill, label: "Medicine Scan", color: "text-cyan-400", section: "medicine" },
   { icon: MessageCircle, label: "AI Chat Coach", color: "text-purple-400", section: "chat" },
@@ -49,6 +50,7 @@ const Dashboard = () => {
     if (section === "chat") return navigate("/chat");
     if (section === "logs") return navigate("/input");
     if (section === "forecast") return navigate("/forecast");
+    if (section === "insights") return navigate("/insights");
     const el = document.getElementById(section);
     el?.scrollIntoView({ behavior: "smooth" });
   };
@@ -124,9 +126,19 @@ const Dashboard = () => {
 
         {/* Analytics */}
         <section id="analytics" className="mb-10">
-          <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2">
-            <BarChart3 size={20} className="text-blue-400" /> Lifestyle Analytics
-          </h2>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+            <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+              <BarChart3 size={20} className="text-blue-400" /> Lifestyle Analytics
+            </h2>
+            <button
+              onClick={() => navigate("/insights")}
+              className="self-start text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 text-primary transition-all duration-200"
+            >
+              <Flame size={14} className="text-primary" />
+              Weekly Insights & Streaks
+              <ArrowRight size={12} />
+            </button>
+          </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="glass-card p-5">
               <h3 className="font-semibold mb-4">Daily Health Trend</h3>
